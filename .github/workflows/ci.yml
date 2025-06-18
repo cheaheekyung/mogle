@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "0.7.13"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: ".python-version"
+        cache: 'uv'  # Python 의존성 캐싱 추가
+
+    - name: Install dependencies
+      run: |
+        if [ -f requirements.txt ]; then
+          uv sync --dev --locked || uv pip install -r requirements.txt
+        else
+          echo "No requirements.txt found"
+          exit 1
+        fi
+
+    - name: Install dev dependencies
+      run: |
+        uv pip install black isort ruff mypy pytest pytest-cov
+
+    # 코드 스타일 검사
+    - name: Check formatting with black
+      run: uv run black --check app tests
+
+    - name: Check import order with isort
+      run: uv run isort --check-only app tests
+
+    - name: Lint with ruff
+      run: uv run ruff check app tests
+
+    # 타입 검사
+    - name: Type check with mypy
+      run: uv run mypy app
+
+    # 테스트 실행
+    # - name: Run pytest with coverage
+    #   run: uv run pytest tests --cov=app --cov-report=xml
+    #   env:
+    #     PYTHONPATH: ${{ github.workspace }}
+
+    # Coverage report upload
+    # - name: Upload coverage reports
+    #   uses: codecov/codecov-action@v3
+    #   env:
+    #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
