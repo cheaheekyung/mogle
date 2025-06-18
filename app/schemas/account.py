@@ -9,3 +9,16 @@ class AccountBase(BaseModel):
     email: EmailStr
     username: str
     full_name: Optional[str] = None
+
+
+class AccountCreate(AccountBase):
+    """회원가입용 스키마"""
+
+    password: str
+
+
+class AccountLogin(BaseModel):
+    """로그인용 스키마"""
+
+    email: EmailStr
+    password: str
