@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
@@ -35,3 +36,16 @@ class TokenData(BaseModel):
     """토큰 데이터 스키마"""
 
     email: Optional[str] = None
+
+
+class AccountResponse(AccountBase):
+    """사용자 응답 스키마"""
+
+    id: int
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
