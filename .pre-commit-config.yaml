@@ -24,7 +24,7 @@ repos:
     rev: v0.4.4
     hooks:
       - id: ruff
-        args: [--fix]  # 자동 수정
+        args: [--fix]
         files: ^(app|tests)/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -40,7 +40,6 @@ repos:
     - id: trailing-whitespace
     - id: end-of-file-fixer
     - id: check-yaml
-    - id: double-quote-string-fixer
     - id: detect-private-key
     - id: detect-aws-credentials
       args: [--allow-missing-credentials]
