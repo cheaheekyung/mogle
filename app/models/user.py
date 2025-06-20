@@ -4,10 +4,10 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 
-class Account(Base):
+class User(Base):
     """사용자 모델"""
 
-    __tablename__ = "accounts"
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
