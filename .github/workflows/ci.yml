@@ -27,32 +27,27 @@ jobs:
 
     - name: Sync dependencies
       run: |
-        uv sync --dev --locked || uv pip install -r requirements.txt
+        uv sync --dev
 
     # 코드 스타일 검사
     - name: Check formatting with black
       run: |
-        uv pip install black
-        uv run black --check app tests
+        uv run black --check app
 
     - name: Check import order with isort
       run: |
-        uv pip install isort
-        uv run isort --check-only app tests
+        uv run isort --check-only app
 
     - name: Lint with ruff
       run: |
-        uv pip install ruff
-        uv run ruff check app tests
+        uv run ruff check app
 
     # 타입 검사
     - name: Type check with mypy
       run: |
-        uv pip install mypy
         uv run mypy app
 
     # 테스트 실행
     # - name: Run pytest
     #   run: |
-    #     uv pip install pytest
     #     uv run pytest tests
