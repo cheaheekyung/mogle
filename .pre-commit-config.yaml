@@ -12,6 +12,7 @@ repos:
       - id: black
         language_version: python3.12
         files: ^(app|tests)/
+        args: [--line-length=120]
 
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
@@ -19,6 +20,7 @@ repos:
       - id: isort
         language_version: python3.12
         files: ^(app|tests)/
+        args: [--profile=black, --line-length=120]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
