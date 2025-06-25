@@ -323,3 +323,31 @@ class TestAPI:
 
         assert response.status_code == 401
         assert "이메일 또는 비밀번호가 올바르지 않습니다" in response.json()["detail"]
+
+
+class TestIntegration:
+    """통합 테스트"""
+
+    def test_complete_user_flow(self, client, unique_user_data):
+        """완전한 사용자 플로우 테스트 (회원가입 → 로그인)"""
+        # 1. 회원가입
+        join_response = client.post("/api/v1/auth/join", json=unique_user_data)
+        assert join_response.status_code == 201
+        user_data = join_response.json()
+
+        # 2. 로그인
+        login_data = {"username": unique_user_data["email"], "password": unique_user_data["password"]}
+        login_response = client.post("/api/v1/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        token_data = login_response.json()
+
+        # 3. 토큰 검증
+        assert "access_token" in token_data
+        assert token_data["token_type"] == "bearer"
+
+        # 사용자 정보가 일치하는지 확인
+        assert user_data["email"] == unique_user_data["email"]
+        assert user_data["username"] == unique_user_data["username"]
+        # 새로 추가된 필드들 확인
+        assert user_data["is_verified"] is False
+        assert "updated_at" in user_data
