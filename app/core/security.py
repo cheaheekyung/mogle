@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from dotenv import load_dotenv
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 load_dotenv()
@@ -35,3 +35,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def verify_token(token: str, credentials_exception):
+    """JWT 토큰 검증"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if not isinstance(email, str):
+            raise credentials_exception
+        return email
+    except JWTError:
+        raise credentials_exception
