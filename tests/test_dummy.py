@@ -227,3 +227,99 @@ class TestUserModel:
         assert user.is_active is True
         assert user.is_verified is False
         assert user.full_name is None
+
+
+class TestAPI:
+    """API 엔드포인트 테스트"""
+
+    def test_root_endpoint(self, client):
+        """루트 엔드포인트 테스트"""
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert "message" in response.json()
+        assert "Mogle API" in response.json()["message"]
+
+    def test_join_success(self, client, unique_user_data):
+        """회원가입 성공 테스트"""
+        response = client.post("/api/v1/auth/join", json=unique_user_data)
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["email"] == unique_user_data["email"]
+        assert data["username"] == unique_user_data["username"]
+        assert data["full_name"] == unique_user_data["full_name"]
+        assert data["is_active"] is True
+        assert data["is_verified"] is False  # 기본값
+        assert "id" in data
+        assert "created_at" in data
+        assert "updated_at" in data
+        # 비밀번호는 응답에 포함되지 않음
+        assert "password" not in data
+        assert "hashed_password" not in data
+
+    def test_join_duplicate_email(self, client, unique_user_data):
+        """이메일 중복 회원가입 테스트"""
+        # 첫 번째 회원가입 성공
+        response1 = client.post("/api/v1/auth/join", json=unique_user_data)
+        assert response1.status_code == 201
+
+        # 같은 이메일로 재가입 시도
+        duplicate_data = unique_user_data.copy()
+        duplicate_data["username"] = f"different{unique_user_data['username']}"
+        response2 = client.post("/api/v1/auth/join", json=duplicate_data)
+
+        assert response2.status_code == 400
+        assert "이미 등록된 이메일" in response2.json()["detail"]
+
+    def test_join_duplicate_username(self, client, unique_user_data):
+        """사용자명 중복 회원가입 테스트"""
+        # 첫 번째 회원가입 성공
+        response1 = client.post("/api/v1/auth/join", json=unique_user_data)
+        assert response1.status_code == 201
+
+        # 같은 사용자명으로 재가입 시도
+        duplicate_data = unique_user_data.copy()
+        duplicate_data["email"] = f"different{unique_user_data['email']}"
+        response2 = client.post("/api/v1/auth/join", json=duplicate_data)
+
+        assert response2.status_code == 400
+        assert "이미 사용 중인 사용자명" in response2.json()["detail"]
+
+    def test_login_success(self, client, unique_user_data):
+        """로그인 성공 테스트"""
+        # 먼저 회원가입
+        client.post("/api/v1/auth/join", json=unique_user_data)
+
+        # 로그인 시도
+        login_data = {
+            "username": unique_user_data["email"],  # OAuth2는 username 필드 사용
+            "password": unique_user_data["password"],
+        }
+        response = client.post("/api/v1/auth/login", data=login_data)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+        assert len(data["access_token"]) > 50  # JWT 토큰은 충분히 길어야 함
+
+    def test_login_invalid_credentials(self, client, unique_user_data):
+        """잘못된 인증 정보로 로그인 테스트"""
+        # 먼저 회원가입
+        client.post("/api/v1/auth/join", json=unique_user_data)
+
+        # 잘못된 비밀번호로 로그인 시도
+        login_data = {"username": unique_user_data["email"], "password": "wrongpassword"}
+        response = client.post("/api/v1/auth/login", data=login_data)
+
+        assert response.status_code == 401
+        assert "이메일 또는 비밀번호가 올바르지 않습니다" in response.json()["detail"]
+
+    def test_login_nonexistent_user(self, client):
+        """존재하지 않는 사용자 로그인 테스트"""
+        login_data = {"username": "nonexistent@example.com", "password": "somepassword"}
+        response = client.post("/api/v1/auth/login", data=login_data)
+
+        assert response.status_code == 401
+        assert "이메일 또는 비밀번호가 올바르지 않습니다" in response.json()["detail"]
