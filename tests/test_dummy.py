@@ -10,6 +10,7 @@ from app.core.database import Base, get_db
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.crud import user as user_crud
 from app.main import app
+from app.models.user import User
 from app.schemas.user import UserCreate
 
 
@@ -175,3 +176,54 @@ class TestUserCrud:
         # 존재하지 않는 이메일
         failed_auth = user_crud.authenticate_user(test_db, "nonexistent@example.com", unique_user_data["password"])
         assert failed_auth is None
+
+
+class TestUserModel:
+    """User 모델 테스트"""
+
+    def test_user_model_creation(self, test_db):
+        """User 모델 직접 생성 테스트"""
+        import uuid
+
+        unique_id = str(uuid.uuid4())[:8]
+
+        user = User(
+            email=f"model{unique_id}@example.com",
+            username=f"modeluser{unique_id}",
+            hashed_password=get_password_hash("password"),
+            full_name="모델 테스트",
+            is_active=True,
+        )
+
+        test_db.add(user)
+        test_db.commit()
+        test_db.refresh(user)
+
+        assert user.id is not None
+        assert user.email == f"model{unique_id}@example.com"
+        assert user.username == f"modeluser{unique_id}"
+        assert user.is_active is True
+        assert user.is_verified is False  # 기본값
+        assert user.created_at is not None
+        assert user.updated_at is not None
+
+    def test_user_model_defaults(self, test_db):
+        """User 모델 기본값 테스트"""
+        import uuid
+
+        unique_id = str(uuid.uuid4())[:8]
+
+        user = User(
+            email=f"defaults{unique_id}@example.com",
+            username=f"defaultuser{unique_id}",
+            hashed_password=get_password_hash("password"),
+        )
+
+        test_db.add(user)
+        test_db.commit()
+        test_db.refresh(user)
+
+        # 기본값 확인
+        assert user.is_active is True
+        assert user.is_verified is False
+        assert user.full_name is None
