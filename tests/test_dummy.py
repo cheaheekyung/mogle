@@ -8,7 +8,9 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, get_password_hash, verify_password
+from app.crud import user as user_crud
 from app.main import app
+from app.schemas.user import UserCreate
 
 
 # 테스트용 데이터베이스 설정
@@ -106,3 +108,70 @@ class TestSecurity:
 
         assert isinstance(token, str)
         assert len(token) > 50
+
+
+class TestUserCrud:
+    """사용자 CRUD 함수 테스트"""
+
+    def test_create_user(self, test_db, unique_user_data):
+        """사용자 생성 테스트"""
+        user_create = UserCreate(**unique_user_data)
+        user = user_crud.create_user(test_db, user_create)
+
+        assert user.email == unique_user_data["email"]
+        assert user.username == unique_user_data["username"]
+        assert user.full_name == unique_user_data["full_name"]
+        assert user.is_active is True
+        assert user.is_verified is False  # 기본값
+        assert user.id is not None
+        assert user.created_at is not None
+        assert user.updated_at is not None
+        # 비밀번호는 해시되어 저장됨
+        assert user.hashed_password != unique_user_data["password"]
+
+    def test_get_user_by_email(self, test_db, unique_user_data):
+        """이메일로 사용자 조회 테스트"""
+        # 사용자 생성
+        user_create = UserCreate(**unique_user_data)
+        created_user = user_crud.create_user(test_db, user_create)
+
+        # 이메일로 조회
+        found_user = user_crud.get_user_by_email(test_db, unique_user_data["email"])
+
+        assert found_user is not None
+        assert found_user.id == created_user.id
+        assert found_user.email == unique_user_data["email"]
+
+    def test_get_user_by_username(self, test_db, unique_user_data):
+        """사용자명으로 사용자 조회 테스트"""
+        # 사용자 생성
+        user_create = UserCreate(**unique_user_data)
+        created_user = user_crud.create_user(test_db, user_create)
+
+        # 사용자명으로 조회
+        found_user = user_crud.get_user_by_username(test_db, unique_user_data["username"])
+
+        assert found_user is not None
+        assert found_user.id == created_user.id
+        assert found_user.username == unique_user_data["username"]
+
+    def test_authenticate_user(self, test_db, unique_user_data):
+        """사용자 인증 테스트"""
+        # 사용자 생성
+        user_create = UserCreate(**unique_user_data)
+        user_crud.create_user(test_db, user_create)
+
+        # 올바른 인증
+        authenticated_user = user_crud.authenticate_user(
+            test_db, unique_user_data["email"], unique_user_data["password"]
+        )
+        assert authenticated_user is not None
+        assert authenticated_user.email == unique_user_data["email"]
+
+        # 잘못된 비밀번호
+        failed_auth = user_crud.authenticate_user(test_db, unique_user_data["email"], "wrongpassword")
+        assert failed_auth is None
+
+        # 존재하지 않는 이메일
+        failed_auth = user_crud.authenticate_user(test_db, "nonexistent@example.com", unique_user_data["password"])
+        assert failed_auth is None
