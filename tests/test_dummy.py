@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -5,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.main import app
 
 
@@ -70,3 +73,36 @@ def unique_user_data():
         "password": "testpassword123",
         "full_name": f"테스트 사용자 {unique_id}",
     }
+
+
+class TestSecurity:
+    """보안 관련 함수 테스트"""
+
+    def test_password_hashing(self):
+        """비밀번호 해싱 테스트"""
+        password = "mypassword123"
+        hashed = get_password_hash(password)
+
+        # 해시된 비밀번호는 원본과 다름
+        assert hashed != password
+        # 검증은 성공
+        assert verify_password(password, hashed) is True
+        # 잘못된 비밀번호는 실패
+        assert verify_password("wrongpassword", hashed) is False
+
+    def test_create_access_token(self):
+        """JWT 토큰 생성 테스트"""
+        data = {"sub": "test@example.com"}
+        token = create_access_token(data)
+
+        assert isinstance(token, str)
+        assert len(token) > 50  # JWT 토큰은 충분히 길어야 함
+
+    def test_create_access_token_with_expiry(self):
+        """만료 시간이 있는 JWT 토큰 생성 테스트"""
+        data = {"sub": "test@example.com"}
+        expires_delta = timedelta(minutes=15)
+        token = create_access_token(data, expires_delta)
+
+        assert isinstance(token, str)
+        assert len(token) > 50
